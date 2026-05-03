@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Plus, Send, Zap, Activity, Trash2, ChevronRight } from 'lucide-react';
-import Image from 'next/image';
+import HologramBody from './hologram-body';
 
 const INITIAL_DRUGS = [
   { id: 1, name: 'Vancomycin', dose: 150, color: '#7df9ff' },
@@ -179,14 +179,8 @@ export default function BioTwinSimulation({ onBack, onNavigate }: { onBack: () =
               <div className="text-2xl font-black">STABLE</div>
            </div>
            
-           <div className="w-full h-full relative p-12">
-             <motion.div 
-                animate={{ opacity: [0.6, 0.8, 0.6], scale: [1, 1.01, 1] }}
-                transition={{ repeat: Infinity, duration: 8 }}
-                className="w-full h-full relative"
-              >
-                <Image src="/body-mesh.png" alt="Body" fill className="object-contain hologram-glow" priority />
-              </motion.div>
+           <div className="w-full h-full relative">
+             <HologramBody />
               
               {/* Hover Points */}
               <AnatomyPoint top="20%" left="50%" label="CNS" status="NORMAL" />
