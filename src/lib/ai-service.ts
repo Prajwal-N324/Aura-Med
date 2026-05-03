@@ -2,7 +2,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 
-// Optimized for Speed: Prioritizing Lite models for sub-second analysis
 const MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"];
 
 export async function analyzeSymptoms(symptoms: string, location: string = "India") {
@@ -12,55 +11,59 @@ export async function analyzeSymptoms(symptoms: string, location: string = "Indi
         model: modelName,
         generationConfig: {
           responseMimeType: "application/json",
-          temperature: 0.1, // Lower temperature for faster, deterministic results
+          temperature: 0.1,
         }
       });
 
       const prompt = `
-        Perform clinical analysis of symptoms: "${symptoms}" for location: "${location}".
-        
-        Return ONLY JSON:
+        Perform clinical analysis of: "${symptoms}" in ${location}.
+        Return ONLY valid JSON. Structure:
         {
-          "diseases": [{"name": "Condition", "probability": "High"}],
-          "hospitals": [{"name": "Apollo/Manipal/AIIMS", "location": "Area", "type": "Specialty"}],
-          "treatment_options": [{"category": "Tier", "estimated_cost": "₹X,XXX", "description": "Summary"}],
-          "gemini_thoughts": [{"point": "Title", "detail": "Detail with **bold**."}],
-          "model_interpretation": "Actionable Solution.",
-          "advice": "Disclaimer."
+          "diseases": [{"name": "string", "probability": "string"}],
+          "hospitals": [{"name": "string", "location": "string", "type": "string"}],
+          "treatment_options": [{"category": "string", "estimated_cost": "string", "description": "string"}],
+          "gemini_thoughts": [{"point": "string", "detail": "string"}],
+          "model_interpretation": "string",
+          "advice": "string"
         }
-        Be concise. Use Markdown bolding.
       `;
 
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      });
+      const result = await model.generateContent(prompt);
       const response = await result.response;
-      return JSON.parse(response.text());
+      const text = response.text();
+      
+      // Safety: Extract JSON if AI includes markdown wrappers
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const cleanJson = jsonMatch ? jsonMatch[0] : text;
+      
+      return JSON.parse(cleanJson);
 
     } catch (error: any) {
-      console.warn(`${modelName} delay:`, error.message);
+      console.warn(`[AI-SYNC] ${modelName} Failure:`, error.message);
       continue;
     }
   }
 
-  return { error: "Latency issues. Please retry." };
+  return { error: "Neural Link Latency. Please check your connection and retry." };
 }
 
 export async function getSimulationReasoning(drugs: any[]) {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash-lite", // Optimized for real-time slider feedback
+      model: "gemini-2.0-flash-lite",
       generationConfig: { 
         responseMimeType: "application/json",
         temperature: 0.1
       }
     });
 
-    const prompt = `Analyze drug interaction: ${JSON.stringify(drugs)}. Focus on CNS/Renal/Cardio. 1-2 sentences with **bold markers**. JSON: {"reasoning": "..."}`;
+    const prompt = `Analyze drug interaction: ${JSON.stringify(drugs)}. JSON: {"reasoning": "1-2 sentence clinical insight."}`;
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return JSON.parse(response.text()).reasoning;
+    const text = response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : text).reasoning;
   } catch (error) {
-    return "Analyzing organ impact...";
+    return "Analyzing organ clearance models...";
   }
 }
