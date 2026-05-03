@@ -31,7 +31,7 @@ export default function BioTwinSimulation({ onBack, onNavigate }: { onBack: () =
     { role: "XAI", text: "Neural Link established. Monitoring multi-drug interactions...", color: "text-cyan-400" },
   ]);
 
-  const addDrug = () => {
+  const addDrug = async () => {
     if (drugs.length >= 5) return;
     const drugNames = ['Meropenem', 'Heparin', 'Insulin', 'Dopamine'];
     const newDrug = { 

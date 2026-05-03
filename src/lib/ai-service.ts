@@ -2,89 +2,65 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 
-// Updated to the next-gen models identified in your diagnostic
-const MODELS = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-pro-latest"];
+// Optimized for Speed: Prioritizing Lite models for sub-second analysis
+const MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"];
 
 export async function analyzeSymptoms(symptoms: string, location: string = "India") {
-  let lastError = null;
-
   for (const modelName of MODELS) {
     try {
-      console.log(`Neural Link: Attempting connection to ${modelName}...`);
-      
       const model = genAI.getGenerativeModel({ 
         model: modelName,
         generationConfig: {
           responseMimeType: "application/json",
+          temperature: 0.1, // Lower temperature for faster, deterministic results
         }
       });
 
       const prompt = `
-        As a Senior Medical Consultant in India, perform a clinical analysis of these symptoms: "${symptoms}".
-        The patient's current location is: "${location}".
+        Perform clinical analysis of symptoms: "${symptoms}" for location: "${location}".
         
-        Return ONLY a JSON object:
+        Return ONLY JSON:
         {
-          "diseases": [{"name": "Condition Name", "probability": "High"}],
-          "hospitals": [{"name": "Real Hospital Name (e.g. Apollo, Manipal, AIIMS)", "location": "Area in ${location}", "type": "Specialty"}],
-          "treatment_options": [{"category": "Govt/Private Tier", "estimated_cost": "₹X,XXX - ₹XX,XXX", "description": "Clinical summary in Indian context"}],
-          "gemini_thoughts": [
-            {"point": "Observation Title", "detail": "Detailed explanation with **bold highlights**."}
-          ],
-          "model_interpretation": "Definitive clinical recommendation with **Actionable Solution**.",
-          "advice": "Mandatory medical disclaimer."
+          "diseases": [{"name": "Condition", "probability": "High"}],
+          "hospitals": [{"name": "Apollo/Manipal/AIIMS", "location": "Area", "type": "Specialty"}],
+          "treatment_options": [{"category": "Tier", "estimated_cost": "₹X,XXX", "description": "Summary"}],
+          "gemini_thoughts": [{"point": "Title", "detail": "Detail with **bold**."}],
+          "model_interpretation": "Actionable Solution.",
+          "advice": "Disclaimer."
         }
-        Provide at least 5 distinct gemini_thoughts. Use Markdown bolding (**) for important medical terms.
+        Be concise. Use Markdown bolding.
       `;
 
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      });
       const response = await result.response;
-      const text = response.text();
-      
-      const parsedData = JSON.parse(text);
-      console.log(`Aura Med Intelligence [${modelName}]:`, parsedData);
-      return parsedData;
+      return JSON.parse(response.text());
 
     } catch (error: any) {
-      console.warn(`${modelName} Link Failure:`, error.message);
-      lastError = error;
+      console.warn(`${modelName} delay:`, error.message);
       continue;
     }
   }
 
-  return { 
-    error: "Universal Intelligence Sync Failure. Please check API quota.",
-    diseases: [],
-    hospitals: [],
-    treatment_options: [],
-    gemini_thoughts: [],
-    model_interpretation: "Emergency backup required.",
-    advice: "Consult a human physician immediately."
-  };
+  return { error: "Latency issues. Please retry." };
 }
 
 export async function getSimulationReasoning(drugs: any[]) {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash",
-      generationConfig: { responseMimeType: "application/json" }
+      model: "gemini-2.0-flash-lite", // Optimized for real-time slider feedback
+      generationConfig: { 
+        responseMimeType: "application/json",
+        temperature: 0.1
+      }
     });
 
-    const prompt = `
-      As an AI Pharmacologist, analyze this drug combination: ${JSON.stringify(drugs)}.
-      Provide a concise clinical reasoning for a medical dashboard reasoning feed.
-      Focus on how these dosages affect specific organs (CNS, Renal, Cardio).
-      
-      Return ONLY a JSON object:
-      {
-        "reasoning": "A 1-2 sentence clinical insight with **bold highlights** for critical markers."
-      }
-    `;
-
+    const prompt = `Analyze drug interaction: ${JSON.stringify(drugs)}. Focus on CNS/Renal/Cardio. 1-2 sentences with **bold markers**. JSON: {"reasoning": "..."}`;
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return JSON.parse(response.text()).reasoning;
   } catch (error) {
-    return "Analyzing neural impact on renal clearance...";
+    return "Analyzing organ impact...";
   }
 }
