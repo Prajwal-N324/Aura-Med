@@ -11,10 +11,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Suppress specific hydration warnings in development
-  devIndicators: {
-    appIsrStatus: false,
-  },
 };
 
 export default nextConfig;
