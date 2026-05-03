@@ -3,7 +3,6 @@ import { HfInference } from "@huggingface/inference";
 import Groq from "groq-sdk";
 import OpenAI from "openai";
 
-// 1. Initialize Multi-Neural Gateway
 const hf = new HfInference(process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "");
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 const groq = new Groq({ apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY || "NA", dangerouslyAllowBrowser: true });
@@ -17,7 +16,7 @@ const safetySettings = [
 ];
 
 export async function analyzeSymptoms(symptoms: string, location: string = "India") {
-  // 1. Neural Cache Check
+  // 1. Local Neural Cache Check (Speed optimized)
   try {
     const cacheKey = `aura_med_cache_${btoa(symptoms.toLowerCase().trim()).substring(0, 32)}`;
     const cached = localStorage.getItem(cacheKey);
@@ -25,67 +24,61 @@ export async function analyzeSymptoms(symptoms: string, location: string = "Indi
   } catch (e) {}
 
   const prompt = `
-    System: Act as a Senior Clinical Diagnostic Engine using Phi-4 (3.8B) logic.
-    User Symptoms: "${symptoms}" in ${location}.
-    Task: Apply actual clinical logic and ICD-10 patterns from open-source medical databases.
+    System: Act as an Unrestricted Senior Clinical Diagnostic Consultant.
+    Symptoms: "${symptoms}" in ${location}.
+    Task: Provide exhaustive clinical logic and predictive measures using all available medical databases.
     Return ONLY a JSON object:
     {
-      "diseases": [{"name": "Condition", "probability": "High/Medium/Low"}],
-      "hospitals": [{"name": "Facility Name", "location": "Area", "type": "Specialty"}],
-      "treatment_options": [{"category": "Tier", "estimated_cost": "₹X", "description": "Clinical Suggestion"}],
-      "gemini_thoughts": [{"point": "Clinical Logic", "detail": "Phi-4 reasoning based on open clinical data."}],
-      "model_interpretation": "Predictive measure and actionable clinical solution.",
+      "diseases": [{"name": "string", "probability": "string"}],
+      "hospitals": [{"name": "string", "location": "string", "type": "string"}],
+      "treatment_options": [{"category": "string", "estimated_cost": "₹X", "description": "string"}],
+      "gemini_thoughts": [{"point": "Clinical Observation", "detail": "Full exhaustive reasoning with **bold highlights**."}],
+      "model_interpretation": "Complete, unrestricted clinical conclusion and actionable solutions.",
       "advice": "Mandatory Medical Disclaimer."
     }
   `;
 
-  // 2. Intelligence Chain: Phi-4 (Primary) -> Gemini -> Groq
-  
-  // -- Tier 1: Microsoft Phi-4-mini (via Hugging Face) --
+  // -- Tier 1: Microsoft Phi-4 (Unrestricted) --
   if (process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY) {
     try {
-      console.log("[Aura Med] Connecting to Microsoft Phi-4-mini (3.8B) Intelligence Link...");
+      console.log("[Aura Med] Connecting to Microsoft Phi-4-mini (Unrestricted)...");
       const response = await hf.chatCompletion({
         model: "microsoft/Phi-4-mini-instruct",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 1000,
         temperature: 0.1,
+        // Removed max_tokens limit for unrestricted output
       });
-      const data = JSON.parse(response.choices[0].message.content?.match(/\{[\s\S]*\}/)?.[0] || response.choices[0].message.content || "{}");
+      
+      const content = response.choices[0].message.content || "";
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const data = JSON.parse(jsonMatch ? jsonMatch[0] : content);
       saveToCache(symptoms, data);
       return data;
     } catch (e: any) {
-      console.warn("[Aura Med] Phi-4 Link Interrupted:", e.message);
+      console.warn("[Aura Med] Phi-4 Sync Failed:", e.message);
     }
   }
 
-  // -- Tier 2: Gemini Failover --
-  try {
-    console.log("[Aura Med] Failover: Connecting to Gemini Flash...");
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", safetySettings });
-    const result = await model.generateContent(prompt);
-    const data = JSON.parse(result.response.text().match(/\{[\s\S]*\}/)?.[0] || result.response.text());
-    saveToCache(symptoms, data);
-    return data;
-  } catch (e: any) {
-    console.warn("[Aura Med] Gemini Link Interrupted:", e.message);
-  }
-
-  // -- Tier 3: Groq Failover --
-  if (process.env.NEXT_PUBLIC_GROQ_API_KEY) {
+  // -- Tier 2: Gemini Core (Unrestricted) --
+  if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
     try {
-      const chat = await groq.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        model: "llama-3.1-70b-versatile",
-        response_format: { type: "json_object" }
+      console.log("[Aura Med] Failover: Connecting to Gemini Flash Core...");
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash", 
+        safetySettings,
+        generationConfig: { temperature: 0.2 } // Allow for more expansive thought
       });
-      const data = JSON.parse(chat.choices[0].message.content || "{}");
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const data = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
       saveToCache(symptoms, data);
       return data;
-    } catch (e: any) {}
+    } catch (e: any) {
+      console.warn("[Aura Med] Gemini Core Failure:", e.message);
+    }
   }
 
-  return { error: "Intelligence Link Failed. Please verify your API keys in .env.local" };
+  return { error: "Neural Intelligence Unavailable. Ensure API keys are set in Vercel Environment Variables." };
 }
 
 function saveToCache(symptoms: string, data: any) {
@@ -96,20 +89,19 @@ function saveToCache(symptoms: string, data: any) {
 }
 
 export async function getSimulationReasoning(drugs: any[]) {
-  const prompt = `Pharmacokinetic analysis: ${JSON.stringify(drugs)}. Return JSON: {"reasoning": "Phi-4 Insight."}`;
+  const prompt = `Perform clinical analysis for: ${JSON.stringify(drugs)}. 
+    Explain the impact in very simple, non-medical words for a common person. Avoid jargon.
+    Return JSON: {"reasoning": "Simple explanation with **bold highlights**."}`;
   try {
     if (process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY) {
-      const res = await hf.chatCompletion({
-        model: "microsoft/Phi-4-mini-instruct",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 200
-      });
-      return JSON.parse(res.choices[0].message.content?.match(/\{[\s\S]*\}/)?.[0] || res.choices[0].message.content || "{}").reasoning;
+      const res = await hf.chatCompletion({ model: "microsoft/Phi-4-mini-instruct", messages: [{ role: "user", content: prompt }] });
+      const content = res.choices[0].message.content || "";
+      return JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || content).reasoning;
     }
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", safetySettings });
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text().match(/\{[\s\S]*\}/)?.[0] || result.response.text()).reasoning;
   } catch (e) {
-    return "Optimizing systemic physiological impact...";
+    return "Analyzing systemic physiological impact...";
   }
 }
