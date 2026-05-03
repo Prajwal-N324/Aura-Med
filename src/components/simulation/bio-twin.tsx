@@ -18,7 +18,7 @@ const initialPkData = [
   { time: 12, conc: 10, predicted: 15 },
 ];
 
-export default function BioTwinSimulation() {
+export default function BioTwinSimulation({ onBack }: { onBack: () => void }) {
   const [pkData, setPkData] = useState(initialPkData);
   const [dosage, setDosage] = useState(150);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -176,7 +176,7 @@ export default function BioTwinSimulation() {
       {/* Bottom Nav */}
       <nav className="flex justify-between items-center bg-black/60 backdrop-blur-xl border border-white/10 p-2 rounded-full px-6">
         <div className="flex gap-4">
-          <button className="px-6 py-2 bg-white/10 rounded-full text-[10px] font-bold">HOME</button>
+          <button onClick={onBack} className="px-6 py-2 bg-cyan-400/20 border border-cyan-400/40 rounded-full text-[10px] font-bold text-cyan-400 hover:bg-cyan-400/30 transition-all">BACK TO DASHBOARD</button>
           <button className="px-6 py-2 hover:bg-white/5 rounded-full text-[10px] font-bold text-white/40">REPORTS</button>
           <button className="px-6 py-2 hover:bg-white/5 rounded-full text-[10px] font-bold text-white/40">ALERTS</button>
         </div>

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Activity, Heart, Thermometer, Droplets } from 'lucide-react';
 import Image from 'next/image';
 
-export default function PatientList() {
+export default function PatientList({ onBack }: { onBack: () => void }) {
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,9 +38,12 @@ export default function PatientList() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold tracking-[0.3em] uppercase text-white/60 mb-8 flex items-center gap-3">
-        <Activity className="text-cyan-400" /> Patient List & Details
-      </h1>
+      <div className="flex items-center gap-4 mb-8">
+        <button onClick={onBack} className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-all uppercase tracking-widest text-white/60">← Back</button>
+        <h1 className="text-xl font-bold tracking-[0.3em] uppercase text-white/60 flex items-center gap-3">
+          <Activity className="text-cyan-400" /> Patient List & Details
+        </h1>
+      </div>
 
       <div className="space-y-4">
         {patients.map((patient, i) => (
