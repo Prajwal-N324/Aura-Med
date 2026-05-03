@@ -57,8 +57,34 @@ export async function analyzeSymptoms(symptoms: string, location: string = "Indi
     diseases: [],
     hospitals: [],
     treatment_options: [],
-    gemini_thought_process: "Critical failure in neural reasoning layer.",
+    gemini_thoughts: [],
     model_interpretation: "Emergency backup required.",
     advice: "Consult a human physician immediately."
   };
+}
+
+export async function getSimulationReasoning(drugs: any[]) {
+  try {
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    const prompt = `
+      As an AI Pharmacologist, analyze this drug combination: ${JSON.stringify(drugs)}.
+      Provide a concise clinical reasoning for a medical dashboard reasoning feed.
+      Focus on how these dosages affect specific organs (CNS, Renal, Cardio).
+      
+      Return ONLY a JSON object:
+      {
+        "reasoning": "A 1-2 sentence clinical insight with **bold highlights** for critical markers."
+      }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return JSON.parse(response.text()).reasoning;
+  } catch (error) {
+    return "Analyzing neural impact on renal clearance...";
+  }
 }

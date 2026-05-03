@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Plus, Send, Zap, Activity, Trash2, ChevronRight, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
+import { getSimulationReasoning } from '@/lib/ai-service';
 
 const INITIAL_DRUGS = [
   { id: 1, name: 'Vancomycin', dose: 150, color: '#7df9ff' },
@@ -41,8 +42,9 @@ export default function BioTwinSimulation({ onBack, onNavigate }: { onBack: () =
     };
     setDrugs([...drugs, newDrug]);
     
-    // XAI Reasoning for new drug
-    addXAIMessage(`New drug detected: **${newDrug.name}**. Cross-referencing hepatic clearance models...`);
+    // Gemini 2.0 Reasoning for new drug
+    const reason = await getSimulationReasoning([...drugs, newDrug]);
+    setChatMessages(prev => [...prev, { role: "GEMINI 2.0 // REASONING", text: reason, color: "text-cyan-400 font-bold" }]);
   };
 
   const addXAIMessage = (text: string) => {
@@ -54,9 +56,11 @@ export default function BioTwinSimulation({ onBack, onNavigate }: { onBack: () =
     if (drug && drug.dose !== dose) {
       setDrugs(drugs.map(d => d.id === id ? { ...d, dose } : d));
       
-      // Trigger XAI reasoning on dose change
-      if (Math.abs(drug.dose - dose) > 50) {
-        addXAIMessage(`Increasing **${drug.name}** to **${dose}mg**. Predicted serum saturation increase: **+${((dose/drug.dose - 1) * 100).toFixed(1)}%**. Toxicity risk remains LOW.`);
+      // Trigger Gemini reasoning on dose change
+      if (Math.abs(drug.dose - dose) > 30) {
+        getSimulationReasoning(drugs.map(d => d.id === id ? { ...d, dose } : d)).then(reason => {
+          setChatMessages(prev => [...prev, { role: "GEMINI 2.0 // IMPACT", text: reason, color: "text-cyan-400 font-bold" }]);
+        });
       }
     }
   };
@@ -78,7 +82,7 @@ export default function BioTwinSimulation({ onBack, onNavigate }: { onBack: () =
   }, [drugs]);
 
   return (
-    <div className="flex flex-col h-screen p-6 gap-6 bg-[radial-gradient(circle_at_center,#0a2333_0%,#05111a_100%)] overflow-hidden">
+    <div className="flex flex-col h-screen p-6 gap-6 bg-[radial-gradient(circle_at_center,#0a2333_0%,#05111a_100%)] overflow-y-auto overflow-x-hidden">
       {/* Header */}
       <header className="flex justify-between items-center border-b border-cyan-400/20 pb-4">
         <div className="flex items-center gap-4">
@@ -120,7 +124,7 @@ export default function BioTwinSimulation({ onBack, onNavigate }: { onBack: () =
                     itemStyle={{ fontSize: '10px' }}
                   />
                   <Area type="monotone" dataKey="reaction" stroke="#ffffff" strokeWidth={2} fillOpacity={1} fill="url(#colorReaction)" name="Body Response" />
-                  {drugs.map(drug => (
+                  {[...drugs].reverse().map(drug => (
                     <Area key={drug.id} type="monotone" dataKey={`drug_${drug.id}`} stroke={drug.color} fillOpacity={0} strokeWidth={2} strokeDasharray="5 5" name={drug.name} />
                   ))}
                 </AreaChart>
@@ -166,11 +170,18 @@ export default function BioTwinSimulation({ onBack, onNavigate }: { onBack: () =
               {/* Proper Anatomy Image */}
               <div className="w-full h-full relative p-12">
                  <motion.div 
-                    animate={{ opacity: [0.7, 0.9, 0.7] }}
-                    transition={{ repeat: Infinity, duration: 4 }}
+                    animate={{ 
+                      opacity: [0.7, 0.9, 0.7],
+                      rotateY: [0, 360] 
+                    }}
+                    transition={{ 
+                      opacity: { repeat: Infinity, duration: 4 },
+                      rotateY: { repeat: Infinity, duration: 20, ease: "linear" }
+                    }}
                     className="w-full h-full relative"
+                    style={{ perspective: '1000px' }}
                   >
-                    <Image src="/body-mesh.png" alt="Body" fill className="object-contain hologram-glow grayscale contrast-125" priority />
+                    <Image src="/body-mesh.png" alt="Body" fill className="object-contain hologram-glow grayscale contrast-125 mix-blend-screen" priority />
                   </motion.div>
                   
                   {/* DYNAMIC OVERLAY: Scanning Line */}
